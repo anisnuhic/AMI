@@ -89,7 +89,7 @@
 <body>
     <div class="sidebar">
         <div class="item">
-            <h2 class="header" style="color: white;">MON AMI</h2>
+            <h2 class="header" style="color: white;">AMI</h2>
         </div>
         <p class="item">Dashboard</p>
         <p class="item">Users</p>
@@ -114,24 +114,27 @@
             <div class="ui card custom-card">
                 <div class="content">
                     <div class="header">Active Users</div>
-                    
+                <!-- kod ovdje-->
                 </div>
             </div>
             <div class="ui card custom-card">
                 <div class="content">
                     <div class="header">Active Calls</div>
+                <!-- kod ovdje-->
                 </div>
+
             </div>
         </div>
         <div class="ui segment">
             <h2 style="color: red;">Recent Activities</h2>
             <div class="ui list activities-list">
             </div>
+            <!--kod ovdje-->
         </div>
         <div class="ui segment">
             <h2 style="color: red;">Active Calls</h2>
             <div class="ui list activities-list">
-                
+                    <!-- kod ovdje -->
             </div>
         </div>
     </div>
