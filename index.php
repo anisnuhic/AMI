@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <link rel="stylesheet" href="/home/bicom/Desktop/AMI/semantic.min.css">
+    <link rel="stylesheet" href="semantic.min.css">
     <style>
         body {
             background-color: #d9dedb;
@@ -18,6 +18,7 @@
             left: 0;
             height: 100%;
             background-color: #1b1c1d;
+            overflow-y: auto;
         }
 
         .main-content {
@@ -86,9 +87,9 @@
 </head>
 
 <body>
-    <div class="ui vertical menu sidebar">
+    <div class="sidebar">
         <div class="item">
-            <h2 class="ui header" style="color: white;">MON AMI</h2>
+            <h2 class="header" style="color: white;">MON AMI</h2>
         </div>
         <p class="item">Dashboard</p>
         <p class="item">Users</p>
@@ -113,56 +114,7 @@
             <div class="ui card custom-card">
                 <div class="content">
                     <div class="header">Active Users</div>
-                    <?php
-                    // AMI connection details
-                    $manager_host = "127.0.0.1";
-                    $manager_port = 5038;
-                    $manager_username = "php-app";
-                    $manager_secret = "your_secret";
-
-                    // Connect to AMI
-                    $socket = fsockopen($manager_host, $manager_port, $errno, $errstr, 30);
-                    if (!$socket) {
-                        echo "Error: $errstr ($errno)<br />\n";
-                    } else {
-                        // Login to AMI
-                        fputs($socket, "Action: Login\r\n");
-                        fputs($socket, "Username: $manager_username\r\n");
-                        fputs($socket, "Secret: $manager_secret\r\n\r\n");
-
-                        // Wait for the response
-                        $response = fread($socket, 4096);
-
-                        if (strpos($response, 'Authentication accepted') === false) {
-                            echo "Error: Authentication failed.<br />\n";
-                        } else {
-                            // Request SIP peers
-                            fputs($socket, "Action: SIPpeers\r\n\r\n");
-
-                            // Wait for the response
-                            $peers = '';
-                            while ($line = fgets($socket)) {
-                                $peers .= $line;
-                                // End of response
-                                if (strpos($line, '--END COMMAND--') !== false) {
-                                    break;
-                                }
-                            }
-
-                            // Parse and display active users
-                            $lines = explode("\n", $peers);
-                            foreach ($lines as $line) {
-                                if (strpos($line, 'OK') !== false) {
-                                    echo "Active User: " . htmlspecialchars(trim($line)) . "<br />";
-                                }
-                            }
-                        }
-
-                        // Logout and close the connection
-                        fputs($socket, "Action: Logoff\r\n\r\n");
-                        fclose($socket);
-                    }
-                    ?>
+                    
                 </div>
             </div>
             <div class="ui card custom-card">
@@ -184,8 +136,8 @@
         </div>
     </div>
 
-    <script src="/home/bicom/Desktop/AMI/jquery.min.js"></script>
-    <script src="/home/bicom/Desktop/AMI/semantic.min.js"></script>
+    <script src="jquery.min.js"></script>
+    <script src="semantic.min.js"></script>
 </body>
 
 </html>
