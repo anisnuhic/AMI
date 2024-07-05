@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/home/bicom/Desktop/AMI/semantic.min.css">
+    <style>
+        body {
+            background-color: #d9dedb;
+        }
+        .sidebar {
+            width: 200px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: #1b1c1d;
+        }
+        .main-content {
+            margin-left: 200px;
+            padding: 20px;
+        }
+        .header {
+            background-color: #ff6f61;
+            color: white;
+            text-align: center;
+            font-size: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);  
+        }
+        .card-container {
+            display: flex;;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .custom-card {
+            width: 30%;
+            border: 2px solid #ff6f61;
+            border-radius: 5px;
+            padding: 20px;
+            padding-bottom: 200px;
+            background-color: white;
+            text-align: center;
+            color: #ff6f61;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .activities-list {
+            width: 98%;
+            border: 2px solid #ff6f61;
+            border-radius: 5px;
+            padding: 20px;
+            padding-bottom: 200px;
+            background-color: white;
+            text-align: center;
+            color: #ff6f61;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin: 0 auto;
+            
+        }
+        .item{
+            color: white;
+            margin-bottom: 10px;
+            text-align: center;
+            border-bottom: #d9dedb;
+            border-bottom: 2px solid #d9dedb;
+        }
+    </style>
+</head>
+<body>
+    <div class="ui vertical menu sidebar">
+        <div class="item">
+            <h2 class="ui header" style="color: white;">MON AMI</h2>
+        </div>
+        <p class="item">Dashboard</p>
+        <p class="item">Users</p>
+    </div>
+    <div class="main-content">
+        <h1>Dashboard</h1>
+        <div class="ui three stackable cards card-container">
+            <div class="ui card custom-card">
+                <div class="content">
+                    <div class="header">All Users</div>
+                </div>
+            </div>
+            <div class="ui card custom-card">
+                <div class="content">
+                    <div class="header">Active Users</div>
+                </div>
+            </div>
+            <div class="ui card custom-card">
+                <div class="content">
+                    <div class="header">Active Calls</div>   
+                </div>
+            </div>
+        </div>
+        <div class="ui segment">
+            <h2 style="color: red;">Recent Activities</h2>
+            <div class="ui list activities-list">
+                <?php
+                // Read from the file
+                $filename = 'data.txt';
+                if (file_exists($filename)) {
+                    $file_content = file_get_contents($filename);
+                    echo nl2br(htmlspecialchars($file_content));
+                } else {
+                    echo "File not found.";
+                }
+            ?>
+            </div>
+        </div>
+        <div class="ui segment">
+            <h2 style="color: rgb(255, 0, 0);">Active Calls</h2>
+            <div class="ui list activities-list">
+                <!-- Active calls content goes here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/home/bicom/Desktop/AMI/jquery.min.js"></script>
+    <script src="/home/bicom/Desktop/AMI/semantic.min.js"></script>
+</body>
+</html>
