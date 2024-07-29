@@ -1,4 +1,6 @@
 const WebSocket = require('ws');
+const fs = require('fs');
+const path = require('path');
 const net = require('net');
 
 const wsPort = 8080;
@@ -7,22 +9,93 @@ const amiPort = 5038;
 const amiUser = 'php-app';
 const amiSecret = 'your_secret';
 
+const filePath = '/etc/asterisk/extensions.conf';
+
+// Function to parse the [globals] section and filter softphones
+function parseSoftphones(fileContent) {
+    const globalsSection = '[globals]';
+    const lines = fileContent.split('\n');
+    let isInGlobalsSection = false;
+    const softphones = {};
+
+    for (const line of lines) {
+        const trimmedLine = line.trim();
+
+        if (trimmedLine.startsWith(globalsSection)) {
+            isInGlobalsSection = true;
+            continue;
+        }
+
+        if (trimmedLine.startsWith('[') && trimmedLine !== globalsSection) {
+            isInGlobalsSection = false;
+        }
+
+        if (isInGlobalsSection && trimmedLine && !trimmedLine.startsWith(';')) {
+            const [key, value] = trimmedLine.split('=').map(part => part.trim());
+            if (key && value) {
+                if (key.startsWith('User')) {
+                    softphones[key] = value;
+                }
+            }
+        }
+    }
+
+    return softphones;
+}
+
 // Create WebSocket server
 const wss = new WebSocket.Server({ port: wsPort });
 console.log(`WebSocket server is running on ws://localhost:${wsPort}`);
 
-let activeCalls = {}; // To store active calls
-let recentCalls = {}; // To store recent calls
-let sipPeers = {}; // To store SIP peers
+let activeCalls = {};
+let recentCalls = {};
+let sipPeers = {};
+let softphones = {};
+
+function sendToClients(type, data) {
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type, data }));
+        }
+    });
+}
+
+// Initial load of softphones
+fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+        console.error(`Error reading file: ${err.message}`);
+        return;
+    }
+
+    softphones = parseSoftphones(data);
+    console.log('Softphones:', softphones);
+    sendToClients('allUsers', Object.keys(softphones));
+});
+
+// Watch for changes in the extensions.conf file
+fs.watch(filePath, (eventType) => {
+    if (eventType === 'change') {
+        console.log('File change detected');
+        fs.readFile(filePath, 'utf8', (err, data) => {
+            if (err) {
+                console.error(`Error reading file: ${err.message}`);
+                return;
+            }
+
+            softphones = parseSoftphones(data);
+            console.log('Updated Softphones:', softphones);
+            sendToClients('allUsers', Object.keys(softphones));
+        });
+    }
+});
 
 wss.on('connection', function connection(ws) {
     console.log('Client connected');
-    
-    // Create AMI connection
+
     const amiClient = net.createConnection({ host: amiHost, port: amiPort }, () => {
         console.log('Connected to AMI');
         amiClient.write(`Action: Login\r\nUsername: ${amiUser}\r\nSecret: ${amiSecret}\r\n\r\n`);
-        amiClient.write(`Action: SIPPeers\r\n\r\n`); // Request SIP peers information
+        amiClient.write(`Action: SIPPeers\r\n\r\n`);
     });
 
     amiClient.on('data', (data) => {
@@ -30,7 +103,6 @@ wss.on('connection', function connection(ws) {
         console.log('Received data from AMI');
 
         if (message.includes('Event: PeerEntry')) {
-            // Handle SIP peer entry events
             const lines = message.split('\n');
             let peer = {};
             lines.forEach(line => {
@@ -44,7 +116,6 @@ wss.on('connection', function connection(ws) {
                 sipPeers[peer.ObjectName] = peer.Status;
             }
         } else if (message.includes('Event: PeerStatus')) {
-            // Handle SIP peer status events
             const lines = message.split('\n');
             let peer = {};
             lines.forEach(line => {
@@ -58,7 +129,6 @@ wss.on('connection', function connection(ws) {
                 sipPeers[peer.Peer] = peer.Status;
             }
         } else if (message.includes('Event: Newchannel') || message.includes('Event: Bridge')) {
-            // Handle new call or bridge event
             const lines = message.split('\n');
             let channelId = '';
             lines.forEach(line => {
@@ -68,12 +138,10 @@ wss.on('connection', function connection(ws) {
             });
 
             if (channelId) {
-                // Add to active calls
                 activeCalls[channelId] = new Date();
-                ws.send(JSON.stringify({ type: 'activeCalls', data: Object.keys(activeCalls) }));
+                sendToClients('activeCalls', Object.keys(activeCalls));
             }
         } else if (message.includes('Event: Hangup')) {
-            // Handle hangup event
             const lines = message.split('\n');
             let channelId = '';
             lines.forEach(line => {
@@ -83,20 +151,17 @@ wss.on('connection', function connection(ws) {
             });
 
             if (channelId) {
-                // Remove from active calls
                 delete activeCalls[channelId];
-                ws.send(JSON.stringify({ type: 'activeCalls', data: Object.keys(activeCalls) }));
+                sendToClients('activeCalls', Object.keys(activeCalls));
 
-                // Handle recent calls
-                recentCalls[channelId] = new Date(); // Store end time
+                recentCalls[channelId] = new Date();
             }
         }
 
-        // Send all users and active users to the client
         const allUsers = Object.keys(sipPeers);
         const activeUsers = allUsers.filter(peer => sipPeers[peer] === 'Reachable');
-        ws.send(JSON.stringify({ type: 'allUsers', data: allUsers }));
-        ws.send(JSON.stringify({ type: 'activeUsers', data: activeUsers }));
+        sendToClients('allUsers', Object.keys(softphones));
+        sendToClients('activeUsers', activeUsers);
     });
 
     amiClient.on('end', () => {
@@ -117,12 +182,11 @@ wss.on('connection', function connection(ws) {
         console.error(`WebSocket error: ${error.message}`);
     });
 
-    // Send recent calls to the client
     setInterval(() => {
         const now = new Date();
         const recentCallsList = Object.keys(recentCalls).filter((channelId) => {
-            return (now - recentCalls[channelId]) < 15 * 60 * 1000; // Last 15 minutes
+            return (now - recentCalls[channelId]) < 15 * 60 * 1000;
         });
-        ws.send(JSON.stringify({ type: 'recentCalls', data: recentCallsList }));
-    }, 60000); // Check every minute
+        sendToClients('recentCalls', recentCallsList);
+    }, 60000);
 });
