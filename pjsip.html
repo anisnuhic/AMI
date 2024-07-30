@@ -3,76 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asterisk Monitoring</title>
+    <title>AMI Dashboard</title>
+    <link rel="stylesheet" href="semantic.min.css">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: "Lucida Console", "Courier New", monospace;
+            background-color: rgb(222, 227, 231);
         }
-        #log {
+        .main-container {
+            padding: 20px;
+        }
+        .sidebar {
+            width: 250px;
+            border-radius: 5px;
+            box-shadow: 2px 2px 2px #7b3e8d;
+            background-color: rgb(134, 37, 113);
+            color: #fff;
+            padding: 20px;
+            position: fixed;
+            height: 100%;
+        }
+        .sidebar .header {
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+        .content {
+            margin-left: 270px;
+            padding: 20px;
+        }
+        .ui.card {
+            box-shadow: 2px 2px 4px #000000;
+            background-color: rgb(145, 235, 160);
+            border-radius: 20px;
             width: 100%;
-            height: 300px;
-            overflow-y: auto;
+        }
+        .ui.grid > .column:not(.row) {
+            border-radius: 20px;
+            margin-left: 15%;
+            background-color: rgb(241,78,78);
+            box-shadow: 2px 2px 4px #000000;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        .ui.segment {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: rgb(241, 78, 78);
+            border-radius: 20px;
+            box-shadow: 2px 2px 4px #000000;
+        }
+        nav {
+            text-align: left;
+            border-radius: 20px;
+            box-shadow: 2px 2px 4px #000000;
+            background-color: rgb(241, 78, 78);
+            color: #faf3f3;
+            padding: 10px;
             margin-bottom: 20px;
         }
-        .section {
-            margin-bottom: 20px;
+        a {
+            text-align: center;
+        }
+        .header {
+            text-shadow: 2px 2px 2px#ddcdcd;
+            text-align: center;
+            height: 30px;
+            width: 100%;
+            padding: 5px;
+            font-size: 25px;
+            background-color: rgb(241, 78, 78);
+        }
+        .item {
+            padding: 10px;
+            font-size: 18px;
+            color: #b65e5e;
+            border-bottom: 1px solid #af8484;
+        }
+        textarea {
+            color: #7b3e8d;
+            font-size: 18px;
         }
     </style>
 </head>
 <body>
-    <h1>Asterisk Monitoring</h1>
-    
-    <div class="section">
-        <h2>Active SIP Peers</h2>
-        <textarea id="sipPeers" rows="10" readonly></textarea>
+    <div class="sidebar">
+        <div class="header">A M I</div>
+        <div class="ui vertical menu">
+            <a class="item" href="#">Dashboard</a>
+            <a class="item" href="#">Users</a>
+        </div>
     </div>
-    
-    <div class="section">
-        <h2>Recent Calls</h2>
-        <textarea id="recentCalls" rows="10" readonly></textarea>
+    <div class="content">
+        <nav>
+            <h1>D A S H B O A R D</h1>
+        </nav>
+        <div class="main-container">
+            <div class="ui grid">
+                <div class="four wide column">
+                    <div class="ui card">
+                        <div class="content">
+                            <div class="header">All Users</div>
+                            <div id="allUsers" class="ui list"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="four wide column">
+                    <div class="ui card">
+                        <div class="content">
+                            <div class="header">Active Users</div>
+                            <div id="activeUsers" class="ui list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <h3>Recent Activities</h3>
+            <div class="ui segment">
+                <textarea id="recentCalls" rows="10" readonly style="width: 100%;"></textarea>
+            </div>
+            <h3>Active Calls</h3>
+            <div class="ui segment">
+                <textarea id="activeCalls" rows="10" readonly style="width: 100%;"></textarea>
+            </div>
+        </div>
     </div>
-    
-    <div class="section">
-        <h2>Active Calls</h2>
-        <textarea id="activeCalls" rows="10" readonly></textarea>
-    </div>
-    
+
     <script>
         const ws = new WebSocket('ws://localhost:8080');
-
+    
         ws.onopen = () => {
             console.log('WebSocket connection opened');
         };
-
+    
         ws.onmessage = (event) => {
             const message = JSON.parse(event.data);
             
-            if (message.type === 'sipPeers') {
-                document.getElementById('sipPeers').value = message.data.join('\n');
-            } else if (message.type === 'callEvent') {
+            if (message.type === 'activeCalls') {
                 const log = document.getElementById('activeCalls');
-                log.value += message.data + '\n';
-                
-                // Update recent calls
-                if (message.data.includes('Event: Hangup')) {
-                    document.getElementById('recentCalls').value += message.data + '\n';
-                }
+                log.value = '';
+                Object.keys(message.data).forEach((channelId) => {
+                    const call = message.data[channelId];
+                    log.value += `Dialer: ${call.dialer}, Recipient: ${call.recipient}\n`;
+                });
             } else if (message.type === 'recentCalls') {
                 const log = document.getElementById('recentCalls');
                 log.value = '';
-                message.data.forEach((callId) => {
-                    log.value += 'Recent call ID: ' + callId + '\n';
+                message.data.forEach((call) => {
+                    log.value += `Dialer: ${call.dialer}, Recipient: ${call.recipient}, Duration: ${call.duration}s, Timestamp: ${new Date(call.timestamp).toLocaleString()}\n`;
+                });
+            } else if (message.type === 'allUsers') {
+                const allUsersList = document.getElementById('allUsers');
+                allUsersList.innerHTML = '';
+                message.data.forEach((user) => {
+                    const listItem = document.createElement('div');
+                    listItem.className = 'item';
+                    listItem.textContent = user;
+                    allUsersList.appendChild(listItem);
+                });
+            } else if (message.type === 'activeUsers') {
+                const activeUsersList = document.getElementById('activeUsers');
+                activeUsersList.innerHTML = '';
+                message.data.forEach((user) => {
+                    const listItem = document.createElement('div');
+                    listItem.className = 'item';
+                    listItem.textContent = user;
+                    activeUsersList.appendChild(listItem);
                 });
             }
         };
-
+    
         ws.onclose = () => {
             console.log('WebSocket connection closed');
         };
-
+    
         ws.onerror = (error) => {
             console.error(`WebSocket error: ${error.message}`);
         };
     </script>
+    
+    <script src="jquery.min.js"></script>
+    <script src="semantic.min.js"></script>
 </body>
 </html>

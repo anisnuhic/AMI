@@ -8,7 +8,7 @@
     <style>
         body {
             font-family: "Lucida Console", "Courier New", monospace;
-            background-color: rgb(222, 227, 231);
+            background-color: #b6b848;
         }
         .main-container {
             padding: 20px;
@@ -16,8 +16,8 @@
         .sidebar {
             width: 250px;
             border-radius: 5px;
-            box-shadow: 2px 2px 2px #7b3e8d;
-            background-color: rgb(138, 35, 115);
+            box-shadow: 2px 2px 2px #000000;
+            background-color: rgb(73, 110, 98);
             color: #fff;
             padding: 20px;
             position: fixed;
@@ -33,7 +33,7 @@
         }
         .ui.card {
             box-shadow: 2px 2px 4px #000000;
-            background-color: rgb(134, 212, 186);
+            background-color: rgb(145, 235, 160);
             border-radius: 20px;
             width: 100%;
         }
@@ -57,7 +57,7 @@
             border-radius: 20px;
             box-shadow: 2px 2px 4px #000000;
             background-color: rgb(241, 78, 78);
-            color: #fff;
+            color: #faf3f3;
             padding: 10px;
             margin-bottom: 20px;
         }
@@ -69,14 +69,26 @@
             text-align: center;
             height: 30px;
             width: 100%;
-            padding-bottom: 40px;
+            padding: 5px;
+            font-size: 25px;
+            background-color: rgb(241, 78, 78);
+        }
+        .item {
+            padding: 10px;
+            font-size: 18px;
+            color: #b65e5e;
+            border-bottom: 1px solid #af8484;
+        }
+        textarea {
+            color: #7b3e8d;
+            font-size: 18px;
         }
     </style>
 </head>
 <body>
     <div class="sidebar">
-        <div class="header">Asterisk manager Interface</div>
-        <div class="ui secondary vertical menu">
+        <div class="header">A M I</div>
+        <div class="ui vertical menu">
             <a class="item">Dashboard</a>
             <a class="item">Users</a>
         </div>
@@ -117,34 +129,26 @@
 
     <script>
         const ws = new WebSocket('ws://localhost:8080');
-
+    
         ws.onopen = () => {
             console.log('WebSocket connection opened');
         };
-
+    
         ws.onmessage = (event) => {
             const message = JSON.parse(event.data);
             
-            if (message.type === 'sipPeer') {
-                document.getElementById('sipPeers').value += message.data + '\n';
-            } else if (message.type === 'callEvent') {
-                const log = document.getElementById('activeCalls');
-                log.value += message.data + '\n';
-                
-                if (message.data.includes('Event: Hangup')) {
-                    document.getElementById('recentCalls').value += message.data + '\n';
-                }
-            } else if (message.type === 'activeCalls') {
+            if (message.type === 'activeCalls') {
                 const log = document.getElementById('activeCalls');
                 log.value = '';
-                message.data.forEach((callId) => {
-                    log.value += 'Active call ID: ' + callId + '\n';
+                Object.keys(message.data).forEach((channelId) => {
+                    const call = message.data[channelId];
+                    log.value += `Dialer: ${call.dialer}, Recipient: ${call.recipient}\n`;
                 });
             } else if (message.type === 'recentCalls') {
                 const log = document.getElementById('recentCalls');
                 log.value = '';
-                message.data.forEach((callId) => {
-                    log.value += 'Recent call ID: ' + callId + '\n';
+                message.data.forEach((call) => {
+                    log.value += `Dialer: ${call.dialer}, Recipient: ${call.recipient}, Duration: ${call.duration}s, Timestamp: ${new Date(call.timestamp).toLocaleString()}\n`;
                 });
             } else if (message.type === 'allUsers') {
                 const allUsersList = document.getElementById('allUsers');
@@ -166,15 +170,16 @@
                 });
             }
         };
-
+    
         ws.onclose = () => {
             console.log('WebSocket connection closed');
         };
-
+    
         ws.onerror = (error) => {
             console.error(`WebSocket error: ${error.message}`);
         };
     </script>
+    
     <script src="jquery.min.js"></script>
     <script src="semantic.min.js"></script>
 </body>
