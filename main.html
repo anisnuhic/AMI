@@ -8,7 +8,7 @@
     <style>
         body {
             font-family: "Lucida Console", "Courier New", monospace;
-            background-color: #b6b848;
+            background-color: #90AFC5;
         }
         .main-container {
             padding: 20px;
@@ -17,8 +17,7 @@
             width: 250px;
             border-radius: 5px;
             box-shadow: 2px 2px 2px #000000;
-            background-color: rgb(73, 110, 98);
-            color: #fff;
+            background-color: #002C54;
             padding: 20px;
             position: fixed;
             height: 100%;
@@ -33,14 +32,14 @@
         }
         .ui.card {
             box-shadow: 2px 2px 4px #000000;
-            background-color: rgb(145, 235, 160);
+            background-color: #FDF6F6;
             border-radius: 20px;
             width: 100%;
         }
         .ui.grid > .column:not(.row) {
             border-radius: 20px;
             margin-left: 15%;
-            background-color: rgb(241,78,78);
+            background-color: #C5001A;
             box-shadow: 2px 2px 4px #000000;
             padding-left: 10px;
             padding-right: 10px;
@@ -48,7 +47,7 @@
         .ui.segment {
             margin-bottom: 20px;
             padding: 20px;
-            background-color: rgb(241, 78, 78);
+            background-color: #C5001A;
             border-radius: 20px;
             box-shadow: 2px 2px 4px #000000;
         }
@@ -56,7 +55,7 @@
             text-align: left;
             border-radius: 20px;
             box-shadow: 2px 2px 4px #000000;
-            background-color: rgb(241, 78, 78);
+            background-color: #763626;
             color: #faf3f3;
             padding: 10px;
             margin-bottom: 20px;
@@ -82,6 +81,7 @@
         textarea {
             color: #7b3e8d;
             font-size: 18px;
+            padding: 10px;
         }
     </style>
 </head>
@@ -139,16 +139,17 @@
             
             if (message.type === 'activeCalls') {
                 const log = document.getElementById('activeCalls');
+                console.log(log);
                 log.value = '';
                 Object.keys(message.data).forEach((channelId) => {
                     const call = message.data[channelId];
-                    log.value += `Dialer: ${call.dialer}, Recipient: ${call.recipient}\n`;
+                    log.value += `Dialer: ${call.dialer}Recipient: ${call.recipient}\n`;
                 });
             } else if (message.type === 'recentCalls') {
                 const log = document.getElementById('recentCalls');
                 log.value = '';
                 message.data.forEach((call) => {
-                    log.value += `Dialer: ${call.dialer}, Recipient: ${call.recipient}, Duration: ${call.duration}s, Timestamp: ${new Date(call.timestamp).toLocaleString()}\n`;
+                    log.value += `Dialer: ${call.dialer}Recipient: ${call.recipient}Duration: ${call.duration}s, Timestamp: ${new Date(call.timestamp).toLocaleString()}\n ---------------------------------------------------- \n`;
                 });
             } else if (message.type === 'allUsers') {
                 const allUsersList = document.getElementById('allUsers');

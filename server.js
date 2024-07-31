@@ -1,5 +1,5 @@
 const WebSocket = require('ws');
-const fs = require('fs');
+//const fs = require('fs');
 const net = require('net');
 
 const wsPort = 8080;
@@ -8,38 +8,6 @@ const amiPort = 5038;
 const amiUser = 'php-app';
 const amiSecret = 'your_secret';
 
-const filePath = '/etc/asterisk/extensions.conf';
-
-function parseSoftphones(fileContent) {
-    const globalsSection = '[globals]';
-    const lines = fileContent.split('\n');
-    let isInGlobalsSection = false;
-    const softphones = {};
-
-    for (const line of lines) {
-        const trimmedLine = line.trim();
-
-        if (trimmedLine.startsWith(globalsSection)) {
-            isInGlobalsSection = true;
-            continue;
-        }
-
-        if (trimmedLine.startsWith('[') && trimmedLine !== globalsSection) {
-            isInGlobalsSection = false;
-        }
-
-        if (isInGlobalsSection && trimmedLine && !trimmedLine.startsWith(';')) {
-            const [key, value] = trimmedLine.split('=').map(part => part.trim());
-            if (key && value) {
-                if (value.startsWith('PJSIP')) {
-                    softphones[key] = value;
-                }
-            }
-        }
-    }
-
-    return softphones;
-}
 
 const wss = new WebSocket.Server({ port: wsPort });
 console.log(`WebSocket server is running on ws://localhost:${wsPort}`);
@@ -47,7 +15,7 @@ console.log(`WebSocket server is running on ws://localhost:${wsPort}`);
 let activeCalls = {};
 let recentCalls = {};
 let sipPeers = {};
-let softphones = {};
+let peer = {};
 
 function sendToClients(type, data) {
     wss.clients.forEach(client => {
@@ -57,33 +25,6 @@ function sendToClients(type, data) {
     });
 }
 
-fs.readFile(filePath, 'utf8', (err, data) => {
-    if (err) {
-        console.error(`Error reading file: ${err.message}`);
-        return;
-    }
-
-    softphones = parseSoftphones(data);
-    console.log('Softphones:', softphones);
-    sendToClients('allUsers', Object.keys(softphones));
-});
-
-fs.watch(filePath, (eventType) => {
-    if (eventType === 'change') {
-        console.log('File change detected');
-        fs.readFile(filePath, 'utf8', (err, data) => {
-            if (err) {
-                console.error(`Error reading file: ${err.message}`);
-                return;
-            }
-
-            softphones = parseSoftphones(data);
-            console.log('Updated Softphones:', softphones);
-            sendToClients('allUsers', Object.keys(softphones));
-        });
-    }
-});
-
 wss.on('connection', function connection(ws) {
     console.log('Client connected');
 
@@ -92,25 +33,25 @@ wss.on('connection', function connection(ws) {
         amiClient.write(`Action: Login\r\nUsername: ${amiUser}\r\nSecret: ${amiSecret}\r\n\r\n`);
         amiClient.write(`Action: SIPPeers\r\n\r\n`);
     });
-    
+
     amiClient.on('data', (data) => {
         const message = data.toString();
         console.log('Received data from AMI');
 
         if (message.includes('Event: PeerEntry') || message.includes('Event: PeerStatus')) {
+            console.log(message);
             const lines = message.split('\n');
-            let peer = {};
             lines.forEach(line => {
                 const [key, value] = line.split(': ');
                 if (key && value) {
                     peer[key.trim()] = value.trim();
+                    console.log(peer[key]);
                 }
             });
-
-            if (peer.ChannelType === 'SIP') {
-                sipPeers[peer.Peer || peer.ObjectName] = peer.Status;
+            if (peer.ChannelType === 'PJSIP') {  
+                sipPeers[peer.Peer || peer.ObjectName] = peer.PeerStatus;
             }
-        } else if (message.includes('Event: Newchannel') || message.includes('Event: Bridge')) {
+        } else if (message.includes('Event: Newchannel') ) {
             const lines = message.split('\n');
             let channelId = '';
             let dialer = '';
@@ -122,8 +63,8 @@ wss.on('connection', function connection(ws) {
                 if (line.startsWith('CallerIDNum: ')) {
                     dialer = line.substring('CallerIDNum: '.length);
                 }
-                if (line.startsWith('ConnectedLineNum: ')) {
-                    recipient = line.substring('ConnectedLineNum: '.length);
+                if (line.startsWith('Exten: ')) {
+                    recipient = line.substring('Exten: '.length);
                 }
             });
 
@@ -131,7 +72,7 @@ wss.on('connection', function connection(ws) {
                 activeCalls[channelId] = { dialer, recipient, startTime: new Date() };
                 sendToClients('activeCalls', activeCalls);
             }
-        } else if (message.includes('Event: Hangup')) {
+        } else if (message.includes('Event: Hangup' || message.includes('Event: Bridge'))) {
             const lines = message.split('\n');
             let channelId = '';
             lines.forEach(line => {
@@ -143,7 +84,6 @@ wss.on('connection', function connection(ws) {
             if (channelId && activeCalls[channelId]) {
                 const callStartTime = activeCalls[channelId].startTime;
                 const callDuration = Math.round((new Date() - callStartTime) / 1000); // Duration in seconds
-
                 // Add to recent calls
                 recentCalls[channelId] = {
                     ...activeCalls[channelId],
@@ -164,10 +104,16 @@ wss.on('connection', function connection(ws) {
                 sendToClients('recentCalls', Object.values(recentCalls));
             }
         }
-
+///napisati dokumentaciju za ovaj dodani dio i provjeriti da li je potrebno 
+///on fs.watch i fs.read i tako to i vidjeti zasto ne pise broj koji se zove ako se
+///ne javi 
         const allUsers = Object.keys(sipPeers);
-        const activeUsers = allUsers.filter(peer => sipPeers[peer] === 'Reachable');
-        sendToClients('allUsers', Object.keys(softphones));
+        let activeUsers = [];
+        Object.entries(sipPeers).forEach(([key,value]) => {
+            if(value === 'Reachable')
+                activeUsers.push(key);
+        }); 
+        sendToClients('allUsers', allUsers);
         sendToClients('activeUsers', activeUsers);
     });
 
