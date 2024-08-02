@@ -1,5 +1,4 @@
 const WebSocket = require('ws');
-//const fs = require('fs');
 const net = require('net');
 
 const wsPort = 8080;
