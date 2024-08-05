@@ -103,9 +103,7 @@ wss.on('connection', function connection(ws) {
                 sendToClients('recentCalls', Object.values(recentCalls));
             }
         }
-///napisati dokumentaciju za ovaj dodani dio i provjeriti da li je potrebno 
-///on fs.watch i fs.read i tako to i vidjeti zasto ne pise broj koji se zove ako se
-///ne javi 
+        
         const allUsers = Object.keys(sipPeers);
         let activeUsers = [];
         Object.entries(sipPeers).forEach(([key,value]) => {
