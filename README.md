@@ -17,16 +17,16 @@ There are no programming language limitations for this application, any language
 ------------------
 
 For this application, we used: 
-    - HTML, CSS, JavaScript, NodeJS (programming languages) 
-    - SEMANTIC UI (framework)
+    - HTML, CSS, JavaScript, NodeJS (programming languages), 
+    - SEMANTIC UI (framework),
     - Zoiper5 and Twinkle (softphones)
 
-About the application: 
-----------------------
+ABOUT THE APPLICATION: 
+
     We use two softphones to establish communication between them. When the server is started, on the specified port, the 'allUsers' section contains all users who are  on Asterisk in the extensions.conf file. When one of the softphones or users registers, meaning their status changes to 'Reachable', that user appears in the 'active users' section. Similarly, when a user deregisters from Asterisk, meaning their status changes to 'Unreachable', they are removed from the 'active users' section. Once we have registered users, when a call is established, it is recorded in the 'active Calls' section, and certain details are tracked (call duration, start time, caller's extension, called extension). When the call ends, it is removed from the 'active Calls' section and moves to the 'recent activities' section, which tracks the last activities in the past 15 minutes (this time interval can be changed). For the implementation of this application, we used Node.js to implement the system's logic, and for the application's display, we used HTML, CSS, JavaScript, and the Semantic UI framework.
 
-About the implementation:
--------------------------
+ABOUT THE IMPLEMENTATION:
+
 
     All code is written in two files (server.js and main.html).
     You can find all the details about the code in the 'AMI(Asterisk Manager Interface)' (obsidian file) in 'AMI_readme' folder.
